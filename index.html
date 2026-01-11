@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Price is Right Plinko</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #222;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #FFD700;
+            text-shadow: 2px 2px #FF4500;
+            margin-bottom: 10px;
+        }
+
+        #game-container {
+            position: relative;
+            background: linear-gradient(to bottom, #ffcccc, #ff99cc);
+            border: 8px solid #FFD700;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+            cursor: crosshair;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        #ui-layer {
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            font-weight: bold;
+            background-color: #32CD32;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 4px #006400;
+            transition: transform 0.1s;
+        }
+
+        button:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 #006400;
+        }
+
+        button:disabled {
+            background-color: #555;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #message {
+            margin-top: 10px;
+            font-size: 24px;
+            min-height: 30px;
+            font-weight: bold;
+        }
+
+        .win-big {
+            color: #FFD700;
+            animation: pulse 0.5s infinite alternate;
+        }
+
+        .win-zero {
+            color: #ff4444;
+        }
+
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.1); }
+        }
+
+        .instructions {
+            font-size: 14px;
+            color: #aaa;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>PLINKO</h1>
+    <p class="instructions">Hover over the top and CLICK to drop your chip!</p>
+    
+    <div id="game-container">
+        <canvas id="plinkoBoard" width="600" height="700"></canvas>
+    </div>
+
+    <div id="ui-layer">
+        <div id="message"></div>
+        <button id="resetBtn" onclick="resetGame()" disabled>Drop Another Chip</button>
+    </div>
+
+<script>
+    const canvas = document.getElementById('plinkoBoard');
+    const ctx = canvas.getContext('2d');
+    const messageEl = document.getElementById('message');
+    const resetBtn = document.getElementById('resetBtn');
+
+    // Game Config
+    const PEG_ROWS = 12;
+    const PEG_COLS = 9; // Effectively creates slots between them
+    const PEG_RADIUS = 5;
+    const CHIP_RADIUS = 16;
+    const GRAVITY = 0.25;
+    const BOUNCE = 0.6; // Energy retained after bounce
+    const FRICTION = 0.98; // Air resistance
+
+    // Dimensions
+    const width = canvas.width;
+    const height = canvas.height;
+    const boardTop = 50;
+    const boardBottom = height - 50;
+    const slotWidth = width / PEG_COLS;
+
+    // Price is Right Plinko Values (Left to Right)
+    // Standard Layout: $100, $500, $1,000, $0, $10,000, $0, $1,000, $500, $100
+    const PRIZES = [100, 500, 1000, 0, 10000, 0, 1000, 500, 100];
+    const SLOT_COLORS = ["#ffecb3", "#ffcdd2", "#e1bee7", "#cfd8dc", "#fff9c4", "#cfd8dc", "#e1bee7", "#ffcdd2", "#ffecb3"];
+
+    let pegs = [];
+    let chip = null;
+    let isDropping = false;
+    let mouseX = width / 2;
+
+    // --- SETUP ---
+
+    function initPegs() {
+        pegs = [];
+        const rowSpacing = (boardBottom - boardTop) / PEG_ROWS;
+
+        for (let r = 0; r < PEG_ROWS; r++) {
+            // Offset every other row
+            let colsInRow = PEG_COLS;
+            let xOffset = slotWidth / 2;
+            
+            if (r % 2 === 1) {
+                colsInRow = PEG_COLS + 1; // Extra peg on offset rows to catch edges
+                xOffset = 0;
+            }
+
+            for (let c = 0; c < colsInRow; c++) {
+                let x = c * slotWidth + xOffset;
+                let y = boardTop + r * rowSpacing;
+                
+                // Don't draw pegs strictly on the walls (visual cleanup)
+                if (x > 10 && x < width - 10) {
+                    pegs.push({ x: x, y: y });
+                }
+            }
+        }
+    }
+
+    // --- INPUT HANDLERS ---
+
+    canvas.addEventListener('mousemove', (e) => {
+        if (isDropping) return;
+        const rect = canvas.getBoundingClientRect();
+        mouseX = e.clientX - rect.left;
+        
+        // Constrain drop zone to standard board width minus margins
+        if (mouseX < 20) mouseX = 20;
+        if (mouseX > width - 20) mouseX = width - 20;
+    });
+
+    canvas.addEventListener('mousedown', (e) => {
+        if (isDropping || chip) return;
+        dropChip();
+    });
+
+    function dropChip() {
+        isDropping = true;
+        resetBtn.disabled = true;
+        messageEl.innerHTML = "";
+        
+        // Create the chip at mouse position
+        chip = {
+            x: mouseX,
+            y: 30,
+            vx: (Math.random() - 0.5) * 2, // Slight random horizontal push
+            vy: 0
+        };
+
+        requestAnimationFrame(update);
+    }
+
+    // --- PHYSICS & LOGIC ---
+
+    function update() {
+        if (!chip) return;
+
+        // Apply Forces
+        chip.vy += GRAVITY;
+        chip.vx *= FRICTION;
+        chip.vy *= FRICTION;
+
+        // Move Chip
+        chip.x += chip.vx;
+        chip.y += chip.vy;
+
+        // Wall Collisions
+        if (chip.x < CHIP_RADIUS) {
+            chip.x = CHIP_RADIUS;
+            chip.vx *= -BOUNCE;
+        } else if (chip.x > width - CHIP_RADIUS) {
+            chip.x = width - CHIP_RADIUS;
+            chip.vx *= -BOUNCE;
+        }
+
+        // Peg Collisions
+        pegs.forEach(peg => {
+            let dx = chip.x - peg.x;
+            let dy = chip.y - peg.y;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+
+            if (dist < CHIP_RADIUS + PEG_RADIUS) {
+                // Calculate collision normal
+                let angle = Math.atan2(dy, dx);
+                let tx = peg.x + Math.cos(angle) * (CHIP_RADIUS + PEG_RADIUS);
+                let ty = peg.y + Math.sin(angle) * (CHIP_RADIUS + PEG_RADIUS);
+
+                // Teleport out of collision (prevent sticking)
+                chip.x = tx;
+                chip.y = ty;
+
+                // Reflect velocity vector
+                // Simple physics approximation for plinko randomness
+                let speed = Math.sqrt(chip.vx*chip.vx + chip.vy*chip.vy);
+                
+                // Add randomness to the bounce angle to mimic peg unpredictability
+                let randomDeflection = (Math.random() - 0.5) * 0.5; 
+                
+                chip.vx = Math.cos(angle + randomDeflection) * speed * BOUNCE;
+                chip.vy = Math.sin(angle + randomDeflection) * speed * BOUNCE;
+            }
+        });
+
+        // Check if landed
+        if (chip.y >= boardBottom - CHIP_RADIUS) {
+            finishGame();
+        } else {
+            draw();
+            requestAnimationFrame(update);
+        }
+    }
+
+    function finishGame() {
+        draw(); // Draw final state
+        
+        // Determine slot
+        let slotIndex = Math.floor(chip.x / slotWidth);
+        if (slotIndex < 0) slotIndex = 0;
+        if (slotIndex >= PRIZES.length) slotIndex = PRIZES.length - 1;
+
+        const prize = PRIZES[slotIndex];
+        
+        // UI Feedback
+        if (prize === 10000) {
+            messageEl.innerHTML = `<span class="win-big">🚨 WINNER! $10,000! 🚨</span>`;
+        } else if (prize === 0) {
+            messageEl.innerHTML = `<span class="win-zero">Oh no! $0</span>`;
+        } else {
+            messageEl.innerHTML = `You won $${prize}`;
+        }
+
+        resetBtn.disabled = false;
+        chip = null; // Stop physics
+        isDropping = true; // Block click until reset
+    }
+
+    function resetGame() {
+        isDropping = false;
+        chip = null;
+        messageEl.innerHTML = "";
+        resetBtn.disabled = true;
+        draw();
+    }
+
+    // --- RENDER ---
+
+    function draw() {
+        ctx.clearRect(0, 0, width, height);
+
+        // Draw Slots
+        for (let i = 0; i < PRIZES.length; i++) {
+            ctx.fillStyle = SLOT_COLORS[i];
+            ctx.fillRect(i * slotWidth, boardBottom, slotWidth, 50);
+            
+            ctx.fillStyle = "#333";
+            ctx.font = "bold 14px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText("$" + PRIZES[i], i * slotWidth + slotWidth / 2, boardBottom + 30);
+            
+            // Draw slot dividers
+            ctx.beginPath();
+            ctx.moveTo(i * slotWidth, boardBottom);
+            ctx.lineTo(i * slotWidth, height);
+            ctx.stroke();
+        }
+
+        // Draw Pegs
+        ctx.fillStyle = "#fff";
+        pegs.forEach(peg => {
+            ctx.beginPath();
+            ctx.arc(peg.x, peg.y, PEG_RADIUS, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        // Draw Chip (or preview)
+        if (chip) {
+            // Falling chip
+            drawChipAt(chip.x, chip.y);
+        } else if (!isDropping) {
+            // Hover preview
+            drawChipAt(mouseX, 30);
+        }
+    }
+
+    function drawChipAt(x, y) {
+        ctx.beginPath();
+        ctx.arc(x, y, CHIP_RADIUS, 0, Math.PI * 2);
+        ctx.fillStyle = "#FF4500"; // Price is Right Red Chip
+        ctx.fill();
+        ctx.strokeStyle = "#8B0000";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // Inner detail to look like a chip
+        ctx.beginPath();
+        ctx.arc(x, y, CHIP_RADIUS - 5, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(255,255,255,0.3)";
+        ctx.stroke();
+        
+        ctx.fillStyle = "white";
+        ctx.font = "10px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("$", x, y);
+    }
+
+    // Initialize
+    initPegs();
+    draw();
+
+</script>
+</body>
+</html>
