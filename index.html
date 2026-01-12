@@ -1,0 +1,1324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Ultimate Game Show Challenge</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Russo+One&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --gold: #FFD700;
+            --gold-dark: #B8860B;
+            --purple: #4A0E78;
+            --purple-dark: #2D0A4E;
+            --red: #DC143C;
+            --green: #00C853;
+            --blue: #1E90FF;
+            --orange: #FF6B35;
+            --cyan: #00E5FF;
+            --pink: #FF1493;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a0a2e 50%, #0a1a2e 100%);
+            min-height: 100vh;
+            color: white;
+            overflow-x: hidden;
+        }
+        .stars { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+        .star { position: absolute; width: 3px; height: 3px; background: white; border-radius: 50%; animation: twinkle 2s infinite; }
+        @keyframes twinkle { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+        .game-container { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 20px; }
+        .screen { display: none; animation: fadeIn 0.5s ease; }
+        .screen.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(2.5rem, 8vw, 5rem);
+            text-align: center;
+            background: linear-gradient(180deg, var(--gold) 0%, var(--gold-dark) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+            letter-spacing: 4px;
+            margin-bottom: 20px;
+        }
+        .subtitle {
+            font-family: 'Russo One', sans-serif;
+            font-size: clamp(1rem, 3vw, 1.5rem);
+            text-align: center;
+            color: var(--cyan);
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .game-card {
+            background: linear-gradient(145deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+            border: 2px solid rgba(255,215,0,0.3);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
+        }
+        .game-title {
+            font-family: 'Russo One', sans-serif;
+            font-size: clamp(1.2rem, 4vw, 1.8rem);
+            color: var(--gold);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .game-number {
+            background: linear-gradient(135deg, var(--gold) 0%, var(--orange) 100%);
+            color: black;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(255,215,0,0.4);
+        }
+        .btn {
+            font-family: 'Russo One', sans-serif;
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--gold) 0%, var(--orange) 100%);
+            color: black;
+            box-shadow: 0 5px 25px rgba(255,215,0,0.4);
+        }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 8px 35px rgba(255,215,0,0.6); }
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--purple) 0%, var(--purple-dark) 100%);
+            color: white;
+            border: 2px solid var(--gold);
+        }
+        .btn-secondary:hover { background: linear-gradient(135deg, var(--gold) 0%, var(--orange) 100%); color: black; }
+        .status-display {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(30,0,50,0.8) 100%);
+            border: 2px solid var(--gold);
+            border-radius: 15px;
+            padding: 15px 25px;
+            font-family: 'Russo One', sans-serif;
+            z-index: 100;
+        }
+        .status-label { font-size: 0.8rem; color: var(--cyan); text-transform: uppercase; }
+        .status-value { font-size: 1.8rem; color: var(--gold); }
+        .lives-display { margin-top: 10px; font-size: 1.5rem; }
+        .life { transition: all 0.3s ease; }
+        .life.lost { opacity: 0.2; filter: grayscale(1); }
+        .timer-warning { animation: timerPulse 1s infinite; }
+        @keyframes timerPulse { 0%, 100% { color: var(--gold); } 50% { color: var(--red); } }
+        .overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .overlay-text {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(3rem, 10vw, 6rem);
+            color: var(--red);
+            text-shadow: 0 0 30px rgba(220,20,60,0.5);
+            margin-bottom: 20px;
+        }
+        .wheel-puzzle { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 30px 0; }
+        .wheel-letter {
+            width: 45px; height: 55px;
+            background: linear-gradient(180deg, #1a3a1a 0%, #0d1f0d 100%);
+            border: 3px solid #2d5a2d;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2rem;
+            color: white;
+            box-shadow: inset 0 -3px 0 rgba(0,0,0,0.3);
+        }
+        .wheel-letter.revealed { background: linear-gradient(180deg, #f5f5dc 0%, #d4d4aa 100%); color: #1a1a1a; animation: flipIn 0.3s ease; }
+        .wheel-letter.space { background: transparent; border: none; box-shadow: none; }
+        @keyframes flipIn { 0% { transform: rotateX(90deg); } 100% { transform: rotateX(0); } }
+        .letter-input { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 20px 0; }
+        .letter-btn {
+            width: 40px; height: 40px;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.3rem;
+            background: linear-gradient(135deg, var(--blue) 0%, #0066cc 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .letter-btn:hover:not(:disabled) { transform: scale(1.1); background: linear-gradient(135deg, var(--gold) 0%, var(--orange) 100%); color: black; }
+        .letter-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .text-input {
+            width: 100%;
+            max-width: 400px;
+            padding: 15px 20px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.2rem;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 15px;
+            color: white;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        .text-input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 20px rgba(255,215,0,0.3); }
+        .text-input::placeholder { color: rgba(255,255,255,0.5); }
+        .input-group { display: flex; flex-direction: column; align-items: center; gap: 15px; margin: 20px 0; }
+        .price-display { text-align: center; margin: 20px 0; }
+        .product-name { font-family: 'Russo One', sans-serif; font-size: 1.5rem; color: var(--cyan); margin-bottom: 10px; }
+        .product-image { font-size: 5rem; margin: 20px 0; }
+        .match-statement {
+            font-size: 1.3rem;
+            text-align: center;
+            padding: 25px;
+            background: rgba(255,215,0,0.1);
+            border-radius: 15px;
+            border: 2px solid var(--gold);
+            margin: 20px 0;
+            line-height: 1.6;
+        }
+        .blank { display: inline-block; min-width: 120px; border-bottom: 3px solid var(--gold); margin: 0 5px; }
+        .number-display {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(3rem, 10vw, 5rem);
+            text-align: center;
+            color: var(--cyan);
+            text-shadow: 0 0 20px rgba(0,229,255,0.5);
+            margin: 30px 0;
+            letter-spacing: 10px;
+        }
+        .musician-boxes { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 20px 0; }
+        .musician-box {
+            aspect-ratio: 1;
+            background: rgba(255,255,255,0.05);
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            text-align: center;
+            padding: 5px;
+            transition: all 0.3s ease;
+        }
+        .musician-box.correct { border-color: var(--green); background: rgba(0,200,83,0.2); }
+        .musician-box.wrong { border-color: var(--red); background: rgba(220,20,60,0.2); animation: shakeBox 0.3s ease; }
+        @keyframes shakeBox { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        .musician-progress { text-align: center; font-size: 1.2rem; color: var(--cyan); margin: 15px 0; }
+        .card-display { display: flex; justify-content: center; gap: 20px; margin: 30px 0; flex-wrap: wrap; }
+        .playing-card {
+            width: 100px; height: 140px;
+            background: linear-gradient(135deg, #fff 0%, #f0f0f0 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2.5rem;
+            color: #333;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+        .playing-card.red { color: var(--red); }
+        .playing-card.hidden { background: linear-gradient(135deg, var(--blue) 0%, var(--purple) 100%); color: transparent; }
+        .playing-card.hidden::before { content: "?"; color: var(--gold); font-size: 3rem; }
+        .impossible-question {
+            font-size: 1.4rem;
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(135deg, rgba(255,20,147,0.2) 0%, rgba(75,0,130,0.2) 100%);
+            border-radius: 20px;
+            border: 3px solid var(--pink);
+            margin: 20px 0;
+        }
+        .scrabble-rack { display: flex; justify-content: center; gap: 8px; margin: 30px 0; flex-wrap: wrap; }
+        .scrabble-tile {
+            width: 50px; height: 50px;
+            background: linear-gradient(135deg, #f5deb3 0%, #deb887 100%);
+            border: 2px solid #8b4513;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.8rem;
+            color: #333;
+            position: relative;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .scrabble-tile:hover { transform: translateY(-5px); }
+        .scrabble-tile.selected { background: linear-gradient(135deg, var(--gold) 0%, var(--orange) 100%); transform: translateY(-10px); }
+        .scrabble-tile .points { position: absolute; bottom: 2px; right: 4px; font-size: 0.7rem; }
+        .word-display { text-align: center; font-family: 'Russo One', sans-serif; font-size: 2rem; color: var(--gold); min-height: 50px; margin: 20px 0; letter-spacing: 5px; }
+        .scrabble-controls { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; }
+        .jeopardy-category { text-align: center; font-family: 'Russo One', sans-serif; font-size: 1.5rem; color: var(--gold); margin-bottom: 10px; }
+        .jeopardy-question-display {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(135deg, #060ce9 0%, #0a0080 100%);
+            border: 5px solid var(--gold);
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .jeopardy-question-text { font-family: 'Poppins', sans-serif; font-size: 1.3rem; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+        .jeopardy-progress { text-align: center; color: var(--cyan); margin: 15px 0; }
+        .plinko-container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #plinkoCanvas {
+            border: 4px solid var(--gold);
+            border-radius: 10px;
+            cursor: crosshair;
+            max-width: 100%;
+        }
+        .plinko-instructions {
+            font-size: 0.9rem;
+            color: var(--cyan);
+            margin-bottom: 10px;
+        }
+        .plinko-result { text-align: center; font-family: 'Russo One', sans-serif; font-size: 1.5rem; color: var(--gold); margin-top: 20px; min-height: 40px; }
+        .final-message {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(3rem, 12vw, 6rem);
+            text-align: center;
+            background: linear-gradient(180deg, var(--gold) 0%, var(--orange) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .rating { text-align: center; font-size: 1.5rem; margin: 20px 0; }
+        .rating-stars { font-size: 3rem; color: var(--gold); }
+        .confetti { position: fixed; width: 10px; height: 10px; top: -10px; animation: fall linear forwards; }
+        @keyframes fall { to { top: 100vh; transform: rotate(720deg); } }
+        .progress-bar { width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; margin: 20px 0; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--gold) 0%, var(--orange) 100%); border-radius: 4px; transition: width 0.5s ease; }
+        .feedback { text-align: center; padding: 20px; margin: 20px 0; border-radius: 15px; font-size: 1.2rem; }
+        .feedback.correct { background: rgba(0,200,83,0.2); border: 2px solid var(--green); color: var(--green); }
+        .feedback.incorrect { background: rgba(220,20,60,0.2); border: 2px solid var(--red); color: #ff6b6b; }
+        .intro-text { font-size: 1.1rem; line-height: 1.8; text-align: center; max-width: 700px; margin: 0 auto 30px; color: #ccc; }
+        .emoji-large { font-size: 4rem; text-align: center; margin: 20px 0; }
+        .center-btns { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; margin-top: 20px; }
+        .treasure-text { 
+            font-size: 1.2rem; 
+            line-height: 1.8; 
+            text-align: center; 
+            max-width: 700px; 
+            margin: 30px auto; 
+            color: var(--gold);
+            padding: 20px;
+            background: rgba(255,215,0,0.1);
+            border: 2px solid var(--gold);
+            border-radius: 15px;
+        }
+        .treasure-text a { color: var(--cyan); }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+        .shake { animation: shake 0.3s ease; }
+        @media (max-width: 600px) {
+            .wheel-letter { width: 35px; height: 45px; font-size: 1.5rem; }
+            .letter-btn { width: 32px; height: 32px; font-size: 1rem; }
+            .playing-card { width: 70px; height: 100px; font-size: 1.8rem; }
+            .scrabble-tile { width: 40px; height: 40px; font-size: 1.4rem; }
+            .status-display { padding: 10px 15px; font-size: 0.9rem; }
+            .status-value { font-size: 1.4rem; }
+            .musician-boxes { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    
+    <div class="status-display" id="statusDisplay" style="display: none;">
+        <div class="status-label">Time</div>
+        <div class="status-value" id="timerDisplay">15:00</div>
+        <div class="lives-display" id="livesDisplay">
+            <span class="life">❤️</span>
+            <span class="life">❤️</span>
+            <span class="life">❤️</span>
+            <span class="life">❤️</span>
+            <span class="life">❤️</span>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <!-- Opening Screen -->
+        <div class="screen active" id="screen-intro">
+            <div class="emoji-large">🎰🎲🎯</div>
+            <h1 class="title">The Ultimate Game Show Challenge</h1>
+            <p class="subtitle">10 Classic Games</p>
+            
+            <div class="game-card">
+                <p class="intro-text">
+                    Well, well, well look who has come crawling back. I don't know if you are even worthy of presents this year. All of you were alternates to the nice list this year. Your gifts are hidden in a place that hasn't been seen or dusted in many decades, so don't even bother trying to look for them. If you can complete this challenge I will look passed previous transgressions and give you the gift your soul most desires.
+                </p>
+                <p class="intro-text">
+                    🏆 <strong>Your mission:</strong> Complete all 10 challenges before time runs out!<br>
+                    ❤️ <strong>5 Lives:</strong> Wrong answers cost a life. Lose all 5 and it's game over!<br>
+                    ⏱️ <strong>15 Minutes:</strong> Beat the clock!
+                </p>
+                <div class="center-btns">
+                    <button class="btn btn-primary" onclick="startGame()">🎬 Let's Play!</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game 1: Wheel of Fortune -->
+        <div class="screen" id="screen-game1">
+            <div class="game-card">
+                <div class="game-title"><span class="game-number">1</span>Wheel of Fortune</div>
+                <div class="progress-bar"><div class="progress-fill" style="width: 10%"></div></div>
+                <p style="text-align: center; margin-bottom: 20px;">Solve the puzzle! Guess letters to reveal the phrase.</p>
+                <p style="text-align: center; color: var(--cyan);">Category: PHRASE</p>
+                <div class="wheel-puzzle" id="wheelPuzzle"></div>
+                <div class="letter-input" id="letterInput"></div>
+                <div id="wheelFeedback"></div>
+                <div class="center-btns" id="wheelSolve" style="display: none;">
+                    <button class="btn btn-primary" onclick="nextGame(2)">Next Game →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game 2: Price is Right -->
+        <div class="screen" id="screen-game2">
+            <div class="game-card">
+                <div class="game-title"><span class="game-number">2</span>The Price is Right</div>
+                <div class="progress-bar"><div class="progress-fill" style="width: 20%"></div></div>
+                <p style="text-align: center; margin-bottom: 10px;">Guess the retail price! Get within $0.10 without going over!</p>
+                <div class="price-display">
+                    <div class="product-image">🍫🥧</div>
+                    <div class="product-name">Box of 8 S'mores Pop-Tarts</div>
+                </div>
+                <div class="input-group">
+                    <input type="text" class="text-input" id="priceInput" placeholder="Enter price" onkeypress="if(event.key==='Enter')checkPrice()">
+                    <button class="btn btn-primary" onclick="checkPrice()">Submit Price</button>
+                </div>
+                <div id="priceFeedback"></div>
+                <div class="center-btns" id="priceNext" style="display: none;">
+                    <button class="btn btn-primary" onclick="nextGame(3)">Next Game →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game 3: Match Game -->
+        <div class="screen" id="screen-game3">
+            <div class="game-card">
+                <div class="game-title"><span class="game-number">3</span>Match Game</div>
+                <div class="progress-bar"><div class="progress-fill" style="width: 30%"></div></div>
+                <p style="text-align: center; margin-bottom: 20px;">Fill in the blank to match what the celebrities wrote!</p>
+                <div class="match-statement">"Dumb Dora is SO dumb... *audience: HOW DUMB IS SHE?* ...she's so dumb, when she went to the dentist, he said her teeth were so dirty he found a <span class="blank"></span> living in there!"</div>
+                <div class="input-group">
+                    <input type="text" class="text-input" id="matchInput" placeholder="Type your answer..." onkeypress="if(event.key==='Enter')checkMatch()">
+                    <button class="btn btn-primary" onclick="checkMatch()">Submit Answer</button>
+                </div>
+                <div id="matchFeedback"></div>
+                <div class="center-btns" id="matchNext" style="display: none;">
+                    <button class="btn btn-primary" onclick="nextGame(4)">Next Game →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game 4: Digital Root -->
+        <div class="screen" id="screen-game4">
+            <div class="game-card">
+                <div class="game-title"><span class="game-number">4</span>Digital Root Challenge</div>
+                <div class="progress-bar"><div class="progress-fill" style="width: 40%"></div></div>
+                <p style="text-align: center; margin-bottom: 10px;">Find the digital root!</p>
+                <p style="text-align: center; color: #888; font-size: 0.9rem;">Keep adding digits until you get a single digit</p>
+                <div class="number-display">987654</div>
+                <p style="text-align: center;">Example: 123 → 1+2+3 = 6 → Digital root is 6</p>
+                <div class="input-group">
+                    <input type="text" class="text-input" id="digitalInput" placeholder="Enter single digit (1-9)" maxlength="1" onkeypress="if(event.key==='Enter')checkDigitalRoot()">
+                    <button class="btn btn-primary" onclick="checkDigitalRoot()">Submit Answer</button>
+                </div>
+                <div id="digitalFeedback"></div>
+                <div class="center-btns" id="digitalNext" style="display: none;">
+                    <button class="btn btn-primary" onclick="nextGame(5)">Next Game →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game 5: Musicians -->
+        <div class="screen" id="screen-game5">
+            <div class="game-card">
+                <div class="game-title"><span class="game-number">5</span>Top 10 Best-Selling Musicians</div>
+                <div class="progress-bar"><div class="progress-fill" style="width: 50%"></div></div>
+                <p style="text-align: center; margin-bottom: 20px;">Name all 10 best-selling musicians of all time!</p>
+                <div class="musician-boxes" id="musicianBoxes">
+                    <div class="musician-box" id="box0"></div>
+                    <div class="musician-box" id="box1"></div>
+                    <div class="musician-box" id="box2"></div>
+                    <div class="musician-box" id="box3"></div>
+                    <div class="musician-box" id="box4"></div>
+                    <div class="musician-box" id="box5"></div>
+                    <div class="musician-box" id="box6"></div>
+                    <div class="musician-box" id="box7"></div>
+                    <div class="musician-box" id="box8"></div>
+                    <div class="musician-box" id="box9"></div>
+                </div>
+                <div class="musician-progress" id="musicianProgress">0 / 10 found</div>
+                <div class="input-group">
+                    <input type="text" class="text-input" id="musicianInput" placeholder="Type an artist name..." onkeypress="if(event.key==='Enter')checkMusician()">
+                    <button class="btn btn-primary" onclick="checkMusician()">Submit</button>
+                </div>
+                <div id="musicianFeedback"></div>
+                <div class="center-btns" id="musicianNext" style="display: none;">
+                    <button class="btn btn-primary" onclick="nextGame(6)">Next Game →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game 6: Card Sharks -->
+        <div class="screen" id="screen-game6">
+            <div class="game-card">
+                <div class="game-title"><span class="game-number">6</span>Card Sharks</div>
+                <div class="progress-bar"><div class="progress-fill" style="width: 60%"></div></div>
+                <p style="text-align: center; margin-bottom: 20px;">Will the next card be HIGHER or LOWER? Type your guess!</p>
+                <div class="card-display" id="cardDisplay">
+                    <div class="playing-card" id="currentCard">7♠</div>
+                    <div class="playing-card hidden" id="nextCard"></div>
+                </div>
+                <div class="input-group">
+                    <input type="text" class="text-input" id="cardInput" placeholder="Type 'higher' or 'lower'" onkeypress="if(event.key==='Enter')guessCard()">
+                    <button class="btn btn-primary" onclick="guessCard()">Submit Guess</button>
+                </div>
+                <div id="cardFeedback"></div>
+                <div class="center-btns" id="cardNext" style="display: none;">
+                    <button class="btn btn-primary" onclick="nextGame(7)">Next Game →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game 7: Impossible Quiz -->
+        <div class="screen" id="screen-game7">
+            <div class="game-card">
+                <div class="game-title"><span class="game-number">7</span>The Impossible Quiz</div>
+                <div class="progress-bar"><div class="progress-fill" style="width: 70%"></div></div>
+                <p style="text-align: center; margin-bottom: 20px;">Think outside the box! 🧠</p>
+                <div class="impossible-question">How many holes are in a polo?</div>
+                <div class="input-group">
+                    <input type="text" class="text-input" id="impossibleInput" placeholder="Enter a number..." onkeypress="if(event.key==='Enter')checkImpossible()">
+                    <button class="btn btn-primary" onclick="checkImpossible()">Submit Answer</button>
+                </div>
+                <div id="impossibleFeedback"></div>
+                <div class="center-btns" id="impossibleNext" style="display: none;">
+                    <button class="btn btn-primary" onclick="nextGame(8)">Next Game →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game 8: Scrabble -->
+        <div class="screen" id="screen-game8">
+            <div class="game-card">
+                <div class="game-title"><span class="game-number">8</span>Scrabble</div>
+                <div class="progress-bar"><div class="progress-fill" style="width: 80%"></div></div>
+                <p style="text-align: center; margin-bottom: 20px;">Make The Highest Scoring Word With These Letters! Click tiles to select.</p>
+                <div class="scrabble-rack" id="scrabbleRack"></div>
+                <div class="word-display" id="wordDisplay">_</div>
+                <div class="scrabble-controls">
+                    <button class="btn btn-secondary" onclick="clearWord()">Clear</button>
+                    <button class="btn btn-primary" onclick="submitWord()">Submit Word</button>
+                </div>
+                <div id="scrabbleFeedback"></div>
+                <div class="center-btns" id="scrabbleNext" style="display: none;">
+                    <button class="btn btn-primary" onclick="nextGame(9)">Next Game →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game 9: Jeopardy -->
+        <div class="screen" id="screen-game9">
+            <div class="game-card">
+                <div class="game-title"><span class="game-number">9</span>Jeopardy!</div>
+                <div class="progress-bar"><div class="progress-fill" style="width: 90%"></div></div>
+                <p style="text-align: center; margin-bottom: 20px;">Answer 3 questions correctly! Answer in the form of a question.</p>
+                <div class="jeopardy-category" id="jeopardyCategory"></div>
+                <div class="jeopardy-question-display">
+                    <p class="jeopardy-question-text" id="jeopardyText"></p>
+                </div>
+                <div class="jeopardy-progress" id="jeopardyProgress">Question 1 of 3</div>
+                <div class="input-group">
+                    <input type="text" class="text-input" id="jeopardyInput" placeholder="What is... / Who is..." onkeypress="if(event.key==='Enter')checkJeopardy()">
+                    <button class="btn btn-primary" onclick="checkJeopardy()">Submit Answer</button>
+                </div>
+                <div id="jeopardyFeedback"></div>
+                <div class="center-btns" id="jeopardyNext" style="display: none;">
+                    <button class="btn btn-primary" onclick="nextGame(10)">Final Game →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game 10: Plinko -->
+        <div class="screen" id="screen-game10">
+            <div class="game-card">
+                <div class="game-title"><span class="game-number">10</span>Plinko!</div>
+                <div class="progress-bar"><div class="progress-fill" style="width: 100%"></div></div>
+                <p style="text-align: center; margin-bottom: 10px;">Drop your chip and hit the <strong style="color: var(--gold);">$10,000 JACKPOT</strong> to win!</p>
+                <p class="plinko-instructions">Hover over the top of the board and CLICK to drop your chip!</p>
+                <div class="plinko-container">
+                    <canvas id="plinkoCanvas" width="600" height="700"></canvas>
+                </div>
+                <div class="plinko-result" id="plinkoResult"></div>
+                <div class="center-btns" id="plinkoResetBtn" style="display: none;">
+                    <button class="btn btn-secondary" onclick="resetPlinkoChip()">💔 Sacrifice a Life to Reset Chip</button>
+                </div>
+                <div class="center-btns" id="plinkoNext" style="display: none;">
+                    <button class="btn btn-primary" onclick="showEnding()">See Final Results! 🏆</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Closing Screen -->
+        <div class="screen" id="screen-ending">
+            <div class="emoji-large">🎉🏆🎊</div>
+            <h1 class="title">Challenge Complete!</h1>
+            <div class="game-card">
+                <div class="final-message">YOU DID IT!</div>
+                <div class="rating">
+                    <div class="rating-stars">⭐⭐⭐⭐⭐</div>
+                    <p id="ratingText">Champion!</p>
+                </div>
+                <div id="summaryStats" style="margin: 30px 0;"></div>
+                <div class="treasure-text">
+                    🎁 For your treasures walk down the hall and turn to the right before the craft room.<br><br>
+                    Dad's gift: <a href="https://www.youtube.com" target="_blank">https://www.youtube.com</a>
+                </div>
+                <p class="intro-text">Congratulations on completing The Ultimate Game Show Challenge!</p>
+                <div class="center-btns">
+                    <button class="btn btn-primary" onclick="restartGame()">🔄 Play Again</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let lives = 5;
+        let timerInterval = null;
+        let timeRemaining = 15 * 60;
+        let gameActive = false;
+        let currentGame = 0;
+        let gameStats = { livesLost: 0 };
+        
+        const topMusicians = [
+            { name: 'the beatles', display: 'The Beatles' },
+            { name: 'beatles', display: 'The Beatles' },
+            { name: 'michael jackson', display: 'Michael Jackson' },
+            { name: 'elvis presley', display: 'Elvis Presley' },
+            { name: 'elvis', display: 'Elvis Presley' },
+            { name: 'queen', display: 'Queen' },
+            { name: 'taylor swift', display: 'Taylor Swift' },
+            { name: 'madonna', display: 'Madonna' },
+            { name: 'the rolling stones', display: 'The Rolling Stones' },
+            { name: 'rolling stones', display: 'The Rolling Stones' },
+            { name: 'pink floyd', display: 'Pink Floyd' },
+            { name: 'frank sinatra', display: 'Frank Sinatra' },
+            { name: 'sinatra', display: 'Frank Sinatra' },
+            { name: 'eminem', display: 'Eminem' }
+        ];
+        let foundMusicians = [];
+
+        const jeopardyQuestions = [
+            { category: 'REALITY TV', question: 'This was the first location for the reality TV show Survivor', answer: 'borneo' },
+            { category: 'FAMILY MEMORIES', question: 'In the famous Newhard Christmas Tape, this is what the second commercial is about', answer: 'wheaties' },
+            { category: 'MOVIES', question: 'Creators of Casper say this film\'s logo plagiarized one of their characters', answer: 'ghostbusters' }
+        ];
+        let currentJeopardyQ = 0;
+
+        // Plinko Variables
+        let plinkoCanvas, plinkoCtx;
+        let plinkoPegs = [];
+        let plinkoChip = null;
+        let plinkoDropping = false;
+        let plinkoMouseX = 300;
+        let plinkoWon = false;
+        const PLINKO_PEG_ROWS = 12;
+        const PLINKO_PEG_COLS = 9;
+        const PLINKO_PEG_RADIUS = 5;
+        const PLINKO_CHIP_RADIUS = 16;
+        const PLINKO_GRAVITY = 0.25;
+        const PLINKO_BOUNCE = 0.6;
+        const PLINKO_FRICTION = 0.98;
+        const PLINKO_PRIZES = [100, 500, 1000, 0, 10000, 0, 1000, 500, 100];
+        const PLINKO_SLOT_COLORS = ["#ffecb3", "#ffcdd2", "#e1bee7", "#cfd8dc", "#fff9c4", "#cfd8dc", "#e1bee7", "#ffcdd2", "#ffecb3"];
+
+        function createStars() {
+            const container = document.getElementById('stars');
+            for (let i = 0; i < 100; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 2 + 's';
+                container.appendChild(star);
+            }
+        }
+        createStars();
+
+        function loseLife() {
+            lives--;
+            gameStats.livesLost++;
+            const hearts = document.querySelectorAll('.life');
+            hearts.forEach((h, i) => { if (i >= lives) h.classList.add('lost'); });
+            if (lives <= 0) endGameNoLives();
+        }
+        
+        function startTimer() {
+            gameActive = true;
+            timerInterval = setInterval(() => {
+                if (timeRemaining > 0) {
+                    timeRemaining--;
+                    const m = Math.floor(timeRemaining / 60);
+                    const s = timeRemaining % 60;
+                    document.getElementById('timerDisplay').textContent = m + ':' + s.toString().padStart(2, '0');
+                    if (timeRemaining <= 60) document.getElementById('timerDisplay').classList.add('timer-warning');
+                } else { endGameTimeUp(); }
+            }, 1000);
+        }
+        
+        function stopTimer() { gameActive = false; if (timerInterval) clearInterval(timerInterval); }
+        function endGameTimeUp() { stopTimer(); showOverlay("⏰ TIME'S UP!", "You ran out of time!"); }
+        function endGameNoLives() { stopTimer(); showOverlay("💔 GAME OVER!", "You ran out of lives!"); }
+        
+        function showOverlay(title, msg) {
+            const o = document.createElement('div');
+            o.className = 'overlay';
+            o.innerHTML = '<div class="overlay-text">' + title + '</div><p style="font-size:1.5rem;margin-bottom:30px;">' + msg + '</p><button class="btn btn-primary" onclick="restartGame()">🔄 Try Again</button>';
+            document.body.appendChild(o);
+        }
+
+        function startGame() {
+            document.getElementById('screen-intro').classList.remove('active');
+            document.getElementById('screen-game1').classList.add('active');
+            document.getElementById('statusDisplay').style.display = 'block';
+            currentGame = 1;
+            startTimer();
+            initWheelOfFortune();
+        }
+
+        function nextGame(n) {
+            if (!gameActive) return;
+            currentGame = n;
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('screen-game' + n).classList.add('active');
+            if (n === 6) initCardSharks();
+            if (n === 8) initScrabble();
+            if (n === 9) initJeopardy();
+            if (n === 10) initPlinko();
+        }
+
+        // Game 1: Wheel of Fortune
+        const wheelAnswer = "PRACTICE MAKES PERFECT";
+        let revealedLetters = new Set([' ']);
+        let wheelSolved = false;
+
+        function initWheelOfFortune() {
+            const p = document.getElementById('wheelPuzzle');
+            p.innerHTML = '';
+            for (let c of wheelAnswer) {
+                const t = document.createElement('div');
+                t.className = 'wheel-letter' + (c === ' ' ? ' space revealed' : '');
+                t.dataset.letter = c;
+                p.appendChild(t);
+            }
+            const inp = document.getElementById('letterInput');
+            inp.innerHTML = '';
+            for (let i = 65; i <= 90; i++) {
+                const b = document.createElement('button');
+                b.className = 'letter-btn';
+                b.textContent = String.fromCharCode(i);
+                b.onclick = () => guessLetter(String.fromCharCode(i));
+                inp.appendChild(b);
+            }
+        }
+
+        function guessLetter(l) {
+            if (!gameActive || revealedLetters.has(l) || wheelSolved) return;
+            const btn = [...document.querySelectorAll('.letter-btn')].find(b => b.textContent === l);
+            btn.disabled = true;
+            if (wheelAnswer.includes(l)) {
+                revealedLetters.add(l);
+                document.querySelectorAll('.wheel-letter').forEach(t => {
+                    if (t.dataset.letter === l) { t.textContent = l; t.classList.add('revealed'); }
+                });
+                if ([...wheelAnswer].every(c => revealedLetters.has(c))) {
+                    wheelSolved = true;
+                    document.getElementById('wheelFeedback').innerHTML = '<div class="feedback correct">🎉 You solved it!</div>';
+                    document.getElementById('wheelSolve').style.display = 'flex';
+                    document.getElementById('letterInput').style.display = 'none';
+                }
+            } else {
+                loseLife();
+                document.getElementById('wheelFeedback').innerHTML = '<div class="feedback incorrect">❌ Wrong letter! -1 life</div>';
+                setTimeout(() => { if (gameActive) document.getElementById('wheelFeedback').innerHTML = ''; }, 1000);
+            }
+        }
+
+        // Game 2: Price is Right
+        function checkPrice() {
+            if (!gameActive) return;
+            const input = document.getElementById('priceInput').value.replace(/[^0-9.]/g, '');
+            const g = parseFloat(input);
+            if (isNaN(g)) { document.getElementById('priceFeedback').innerHTML = '<div class="feedback incorrect">Please enter a valid price!</div>'; return; }
+            const actual = 3.45;
+            const diff = actual - g;
+            if (diff >= 0 && diff <= 0.10) {
+                document.getElementById('priceFeedback').innerHTML = '<div class="feedback correct">🎉 Correct! The price is $3.45!</div>';
+                document.getElementById('priceNext').style.display = 'flex';
+                document.getElementById('priceInput').disabled = true;
+            } else if (g > actual) {
+                loseLife();
+                document.getElementById('priceFeedback').innerHTML = '<div class="feedback incorrect">❌ You went over! Try again. -1 life</div>';
+                document.getElementById('priceInput').value = '';
+            } else {
+                loseLife();
+                document.getElementById('priceFeedback').innerHTML = '<div class="feedback incorrect">❌ Too low! Get within $0.10 without going over. -1 life</div>';
+                document.getElementById('priceInput').value = '';
+            }
+        }
+
+        // Game 3: Match Game
+        function checkMatch() {
+            if (!gameActive) return;
+            const a = document.getElementById('matchInput').value.trim().toLowerCase();
+            if (!a) { document.getElementById('matchFeedback').innerHTML = '<div class="feedback incorrect">Please enter an answer!</div>'; return; }
+            if (a.includes('squirrel')) {
+                document.getElementById('matchFeedback').innerHTML = '<div class="feedback correct">🎉 Great match!</div>';
+                document.getElementById('matchNext').style.display = 'flex';
+                document.getElementById('matchInput').disabled = true;
+            } else {
+                loseLife();
+                document.getElementById('matchFeedback').innerHTML = '<div class="feedback incorrect">❌ Not the match! Think smaller and furrier... -1 life</div>';
+                document.getElementById('matchInput').value = '';
+            }
+        }
+
+        // Game 4: Digital Root
+        function checkDigitalRoot() {
+            if (!gameActive) return;
+            const a = parseInt(document.getElementById('digitalInput').value);
+            if (isNaN(a) || a < 1 || a > 9) { document.getElementById('digitalFeedback').innerHTML = '<div class="feedback incorrect">Please enter a single digit (1-9)!</div>'; return; }
+            if (a === 3) {
+                document.getElementById('digitalFeedback').innerHTML = '<div class="feedback correct">🎉 Correct! 9+8+7+6+5+4=39 → 3+9=12 → 1+2=3!</div>';
+                document.getElementById('digitalNext').style.display = 'flex';
+                document.getElementById('digitalInput').disabled = true;
+            } else {
+                loseLife();
+                document.getElementById('digitalFeedback').innerHTML = '<div class="feedback incorrect">❌ Not quite! Keep adding until single digit. -1 life</div>';
+                document.getElementById('digitalInput').value = '';
+            }
+        }
+
+        // Game 5: Musicians
+        function checkMusician() {
+            if (!gameActive) return;
+            const g = document.getElementById('musicianInput').value.trim().toLowerCase();
+            if (!g) { document.getElementById('musicianFeedback').innerHTML = '<div class="feedback incorrect">Please enter an artist name!</div>'; return; }
+            const m = topMusicians.find(x => x.name === g);
+            if (m && !foundMusicians.includes(m.display)) {
+                foundMusicians.push(m.display);
+                const box = document.getElementById('box' + (foundMusicians.length - 1));
+                box.textContent = m.display;
+                box.classList.add('correct');
+                document.getElementById('musicianProgress').textContent = foundMusicians.length + ' / 10 found';
+                document.getElementById('musicianFeedback').innerHTML = '<div class="feedback correct">✅ ' + m.display + '!</div>';
+                if (foundMusicians.length >= 10) {
+                    document.getElementById('musicianNext').style.display = 'flex';
+                    document.getElementById('musicianInput').disabled = true;
+                }
+            } else if (m && foundMusicians.includes(m.display)) {
+                document.getElementById('musicianFeedback').innerHTML = '<div class="feedback incorrect">You already found that one!</div>';
+            } else {
+                loseLife();
+                const emptyBoxIndex = foundMusicians.length;
+                if (emptyBoxIndex < 10) {
+                    const wrongBox = document.getElementById('box' + emptyBoxIndex);
+                    wrongBox.textContent = g;
+                    wrongBox.classList.add('wrong');
+                    setTimeout(() => {
+                        wrongBox.textContent = '';
+                        wrongBox.classList.remove('wrong');
+                    }, 1500);
+                }
+                document.getElementById('musicianFeedback').innerHTML = '<div class="feedback incorrect">❌ Not in the top 10! -1 life</div>';
+            }
+            document.getElementById('musicianInput').value = '';
+        }
+
+        // Game 6: Card Sharks
+        let currentCardValue = 7, nextCardValue;
+        const suits = ['♠','♥','♦','♣'];
+        function initCardSharks() {
+            nextCardValue = Math.floor(Math.random() * 13) + 2;
+            while (nextCardValue === currentCardValue) nextCardValue = Math.floor(Math.random() * 13) + 2;
+        }
+        function getCardDisplay(v) {
+            const s = suits[Math.floor(Math.random() * 4)];
+            let d = v > 10 ? ['J','Q','K','A'][v-11] : v;
+            return { text: d + s, isRed: s === '♥' || s === '♦' };
+        }
+        function guessCard() {
+            if (!gameActive) return;
+            const g = document.getElementById('cardInput').value.trim().toLowerCase();
+            if (g !== 'higher' && g !== 'lower') { document.getElementById('cardFeedback').innerHTML = '<div class="feedback incorrect">Please type "higher" or "lower"!</div>'; return; }
+            const nc = document.getElementById('nextCard');
+            const ci = getCardDisplay(nextCardValue);
+            nc.textContent = ci.text;
+            nc.classList.remove('hidden');
+            if (ci.isRed) nc.classList.add('red');
+            const isH = nextCardValue > currentCardValue;
+            if ((g === 'higher' && isH) || (g === 'lower' && !isH)) {
+                document.getElementById('cardFeedback').innerHTML = '<div class="feedback correct">🎉 Correct!</div>';
+                document.getElementById('cardNext').style.display = 'flex';
+                document.getElementById('cardInput').disabled = true;
+            } else {
+                loseLife();
+                document.getElementById('cardFeedback').innerHTML = '<div class="feedback incorrect">❌ Wrong! It was ' + (isH ? 'higher' : 'lower') + '! -1 life</div>';
+                setTimeout(() => {
+                    if (gameActive && lives > 0) {
+                        currentCardValue = nextCardValue;
+                        document.getElementById('currentCard').textContent = ci.text;
+                        document.getElementById('currentCard').className = 'playing-card' + (ci.isRed ? ' red' : '');
+                        nc.className = 'playing-card hidden';
+                        nc.textContent = '';
+                        initCardSharks();
+                        document.getElementById('cardInput').value = '';
+                        document.getElementById('cardFeedback').innerHTML = '';
+                    }
+                }, 1500);
+            }
+        }
+
+        // Game 7: Impossible Quiz
+        function checkImpossible() {
+            if (!gameActive) return;
+            const a = parseInt(document.getElementById('impossibleInput').value);
+            if (isNaN(a)) { document.getElementById('impossibleFeedback').innerHTML = '<div class="feedback incorrect">Please enter a number!</div>'; return; }
+            if (a === 4) {
+                document.getElementById('impossibleFeedback').innerHTML = '<div class="feedback correct">🎉 Correct! 4 holes: 2 arms, 1 head, 1 bottom!</div>';
+                document.getElementById('impossibleNext').style.display = 'flex';
+                document.getElementById('impossibleInput').disabled = true;
+            } else {
+                loseLife();
+                document.getElementById('impossibleFeedback').innerHTML = '<div class="feedback incorrect">❌ Think about ALL openings! -1 life</div>';
+                document.getElementById('impossibleInput').value = '';
+            }
+        }
+
+        // Game 8: Scrabble
+        const scrabbleTiles = [
+            {letter:'A',points:1},
+            {letter:'R',points:1},
+            {letter:'T',points:1},
+            {letter:'Z',points:10},
+            {letter:'Q',points:10},
+            {letter:'U',points:1},
+            {letter:'I',points:1}
+        ];
+        let selectedTiles = [];
+        const validWords = ['QUARTZ','QUIZ','QUIT','ART','RAT','TAR','AIR','ZIT','IT','AT','TZAR','QUART','TIARA','AURA','ARIA','IOTA','RITZ'];
+        function initScrabble() {
+            const r = document.getElementById('scrabbleRack');
+            r.innerHTML = '';
+            scrabbleTiles.forEach((t, i) => {
+                const e = document.createElement('div');
+                e.className = 'scrabble-tile';
+                e.innerHTML = t.letter + '<span class="points">' + t.points + '</span>';
+                e.onclick = () => { const idx = selectedTiles.indexOf(i); if (idx > -1) { selectedTiles.splice(idx,1); e.classList.remove('selected'); } else { selectedTiles.push(i); e.classList.add('selected'); } document.getElementById('wordDisplay').textContent = selectedTiles.map(j => scrabbleTiles[j].letter).join('') || '_'; };
+                r.appendChild(e);
+            });
+        }
+        function clearWord() { selectedTiles = []; document.querySelectorAll('.scrabble-tile').forEach(t => t.classList.remove('selected')); document.getElementById('wordDisplay').textContent = '_'; }
+        function submitWord() {
+            if (!gameActive) return;
+            const w = selectedTiles.map(i => scrabbleTiles[i].letter).join('');
+            if (w.length < 2) { document.getElementById('scrabbleFeedback').innerHTML = '<div class="feedback incorrect">Word must be at least 2 letters!</div>'; return; }
+            if (validWords.includes(w)) {
+                if (w === 'QUARTZ') {
+                    document.getElementById('scrabbleFeedback').innerHTML = '<div class="feedback correct">🎉 "QUARTZ" - The highest scoring word! Perfect!</div>';
+                    document.getElementById('scrabbleNext').style.display = 'flex';
+                    document.querySelectorAll('.scrabble-tile').forEach(t => t.onclick = null);
+                } else {
+                    loseLife();
+                    document.getElementById('scrabbleFeedback').innerHTML = '<div class="feedback incorrect">"' + w + '" is valid, but not the highest scoring! Try again. -1 life</div>';
+                    clearWord();
+                }
+            } else {
+                loseLife();
+                document.getElementById('scrabbleFeedback').innerHTML = '<div class="feedback incorrect">"' + w + '" is not valid! -1 life</div>';
+                clearWord();
+            }
+        }
+
+        // Game 9: Jeopardy
+        function initJeopardy() { currentJeopardyQ = 0; showJQ(); }
+        function showJQ() {
+            const q = jeopardyQuestions[currentJeopardyQ];
+            document.getElementById('jeopardyCategory').textContent = q.category;
+            document.getElementById('jeopardyText').textContent = q.question;
+            document.getElementById('jeopardyProgress').textContent = 'Question ' + (currentJeopardyQ + 1) + ' of 3';
+        }
+        function checkJeopardy() {
+            if (!gameActive) return;
+            const a = document.getElementById('jeopardyInput').value.trim().toLowerCase();
+            if (!a) { document.getElementById('jeopardyFeedback').innerHTML = '<div class="feedback incorrect">Please enter an answer!</div>'; return; }
+            const q = jeopardyQuestions[currentJeopardyQ];
+            const hasQ = a.includes('what is') || a.includes('who is') || a.includes("what's") || a.includes("who's");
+            const hasA = a.includes(q.answer);
+            if (hasA && hasQ) {
+                document.getElementById('jeopardyFeedback').innerHTML = '<div class="feedback correct">🎉 Correct!</div>';
+                currentJeopardyQ++;
+                if (currentJeopardyQ >= 3) {
+                    document.getElementById('jeopardyNext').style.display = 'flex';
+                    document.getElementById('jeopardyInput').disabled = true;
+                } else { setTimeout(() => { if (gameActive) { showJQ(); document.getElementById('jeopardyInput').value = ''; document.getElementById('jeopardyFeedback').innerHTML = ''; } }, 1500); }
+            } else if (hasA && !hasQ) {
+                loseLife();
+                document.getElementById('jeopardyFeedback').innerHTML = '<div class="feedback incorrect">❌ Answer in question form! "What is..." -1 life</div>';
+                document.getElementById('jeopardyInput').value = '';
+            } else {
+                loseLife();
+                document.getElementById('jeopardyFeedback').innerHTML = '<div class="feedback incorrect">❌ Wrong! -1 life</div>';
+                document.getElementById('jeopardyInput').value = '';
+            }
+        }
+
+        // Game 10: Plinko (Canvas-based like the reference)
+        function initPlinko() {
+            plinkoCanvas = document.getElementById('plinkoCanvas');
+            plinkoCtx = plinkoCanvas.getContext('2d');
+            plinkoWon = false;
+            plinkoDropping = false;
+            plinkoChip = null;
+            
+            const width = plinkoCanvas.width;
+            const boardTop = 50;
+            const boardBottom = plinkoCanvas.height - 50;
+            const slotWidth = width / PLINKO_PEG_COLS;
+            
+            // Initialize pegs
+            plinkoPegs = [];
+            const rowSpacing = (boardBottom - boardTop) / PLINKO_PEG_ROWS;
+            
+            for (let r = 0; r < PLINKO_PEG_ROWS; r++) {
+                let colsInRow = PLINKO_PEG_COLS;
+                let xOffset = slotWidth / 2;
+                
+                if (r % 2 === 1) {
+                    colsInRow = PLINKO_PEG_COLS + 1;
+                    xOffset = 0;
+                }
+                
+                for (let c = 0; c < colsInRow; c++) {
+                    let x = c * slotWidth + xOffset;
+                    let y = boardTop + r * rowSpacing;
+                    if (x > 10 && x < width - 10) {
+                        plinkoPegs.push({ x: x, y: y });
+                    }
+                }
+            }
+            
+            // Mouse handlers
+            plinkoCanvas.onmousemove = function(e) {
+                if (plinkoDropping || plinkoWon) return;
+                const rect = plinkoCanvas.getBoundingClientRect();
+                plinkoMouseX = (e.clientX - rect.left) * (plinkoCanvas.width / rect.width);
+                if (plinkoMouseX < 20) plinkoMouseX = 20;
+                if (plinkoMouseX > width - 20) plinkoMouseX = width - 20;
+                drawPlinko();
+            };
+            
+            plinkoCanvas.onclick = function(e) {
+                if (plinkoDropping || plinkoChip || plinkoWon) return;
+                if (!gameActive) return;
+                dropPlinkoChip();
+            };
+            
+            drawPlinko();
+        }
+        
+        function dropPlinkoChip() {
+            plinkoDropping = true;
+            document.getElementById('plinkoResult').innerHTML = '';
+            document.getElementById('plinkoResetBtn').style.display = 'flex';
+            
+            plinkoChip = {
+                x: plinkoMouseX,
+                y: 30,
+                vx: (Math.random() - 0.5) * 2,
+                vy: 0
+            };
+            
+            requestAnimationFrame(updatePlinko);
+        }
+        
+        function resetPlinkoChip() {
+            if (!gameActive || !plinkoDropping || plinkoWon || lives <= 1) return;
+            
+            loseLife();
+            plinkoChip = null;
+            plinkoDropping = false;
+            document.getElementById('plinkoResult').innerHTML = '<span style="color: var(--cyan);">Chip reset! -1 life. Click to drop again.</span>';
+            document.getElementById('plinkoResetBtn').style.display = 'none';
+            
+            setTimeout(() => {
+                if (gameActive && !plinkoWon) {
+                    document.getElementById('plinkoResult').innerHTML = '';
+                }
+            }, 1500);
+            
+            drawPlinko();
+        }
+        
+        function updatePlinko() {
+            if (!plinkoChip) return;
+            
+            const width = plinkoCanvas.width;
+            const boardBottom = plinkoCanvas.height - 50;
+            
+            // Apply forces
+            plinkoChip.vy += PLINKO_GRAVITY;
+            plinkoChip.vx *= PLINKO_FRICTION;
+            plinkoChip.vy *= PLINKO_FRICTION;
+            
+            // Move chip
+            plinkoChip.x += plinkoChip.vx;
+            plinkoChip.y += plinkoChip.vy;
+            
+            // Wall collisions
+            if (plinkoChip.x < PLINKO_CHIP_RADIUS) {
+                plinkoChip.x = PLINKO_CHIP_RADIUS;
+                plinkoChip.vx *= -PLINKO_BOUNCE;
+            } else if (plinkoChip.x > width - PLINKO_CHIP_RADIUS) {
+                plinkoChip.x = width - PLINKO_CHIP_RADIUS;
+                plinkoChip.vx *= -PLINKO_BOUNCE;
+            }
+            
+            // Peg collisions
+            plinkoPegs.forEach(peg => {
+                let dx = plinkoChip.x - peg.x;
+                let dy = plinkoChip.y - peg.y;
+                let dist = Math.sqrt(dx*dx + dy*dy);
+                
+                if (dist < PLINKO_CHIP_RADIUS + PLINKO_PEG_RADIUS) {
+                    let angle = Math.atan2(dy, dx);
+                    let tx = peg.x + Math.cos(angle) * (PLINKO_CHIP_RADIUS + PLINKO_PEG_RADIUS);
+                    let ty = peg.y + Math.sin(angle) * (PLINKO_CHIP_RADIUS + PLINKO_PEG_RADIUS);
+                    
+                    plinkoChip.x = tx;
+                    plinkoChip.y = ty;
+                    
+                    let speed = Math.sqrt(plinkoChip.vx*plinkoChip.vx + plinkoChip.vy*plinkoChip.vy);
+                    let randomDeflection = (Math.random() - 0.5) * 0.5;
+                    
+                    plinkoChip.vx = Math.cos(angle + randomDeflection) * speed * PLINKO_BOUNCE;
+                    plinkoChip.vy = Math.sin(angle + randomDeflection) * speed * PLINKO_BOUNCE;
+                }
+            });
+            
+            // Check if landed
+            if (plinkoChip.y >= boardBottom - PLINKO_CHIP_RADIUS) {
+                finishPlinko();
+            } else {
+                drawPlinko();
+                requestAnimationFrame(updatePlinko);
+            }
+        }
+        
+        function finishPlinko() {
+            drawPlinko();
+            document.getElementById('plinkoResetBtn').style.display = 'none';
+            
+            const width = plinkoCanvas.width;
+            const slotWidth = width / PLINKO_PEG_COLS;
+            
+            let slotIndex = Math.floor(plinkoChip.x / slotWidth);
+            if (slotIndex < 0) slotIndex = 0;
+            if (slotIndex >= PLINKO_PRIZES.length) slotIndex = PLINKO_PRIZES.length - 1;
+            
+            const prize = PLINKO_PRIZES[slotIndex];
+            
+            if (prize === 10000) {
+                document.getElementById('plinkoResult').innerHTML = '<span style="color: var(--gold); animation: pulse 0.5s infinite alternate;">🚨 WINNER! $10,000! 🚨</span>';
+                document.getElementById('plinkoNext').style.display = 'flex';
+                plinkoWon = true;
+                createConfetti();
+            } else if (prize === 0) {
+                loseLife();
+                document.getElementById('plinkoResult').innerHTML = '<span style="color: #ff4444;">Oh no! $0 - Try again! -1 life</span>';
+                setTimeout(() => {
+                    if (gameActive && lives > 0 && !plinkoWon) {
+                        plinkoChip = null;
+                        plinkoDropping = false;
+                        document.getElementById('plinkoResult').innerHTML = '';
+                        drawPlinko();
+                    }
+                }, 2000);
+            } else {
+                loseLife();
+                document.getElementById('plinkoResult').innerHTML = '<span style="color: #ff4444;">$' + prize + ' - Not the jackpot! Try again! -1 life</span>';
+                setTimeout(() => {
+                    if (gameActive && lives > 0 && !plinkoWon) {
+                        plinkoChip = null;
+                        plinkoDropping = false;
+                        document.getElementById('plinkoResult').innerHTML = '';
+                        drawPlinko();
+                    }
+                }, 2000);
+            }
+        }
+        
+        function drawPlinko() {
+            const width = plinkoCanvas.width;
+            const height = plinkoCanvas.height;
+            const boardBottom = height - 50;
+            const slotWidth = width / PLINKO_PEG_COLS;
+            
+            // Clear canvas with gradient background
+            const gradient = plinkoCtx.createLinearGradient(0, 0, 0, height);
+            gradient.addColorStop(0, '#1a0a2e');
+            gradient.addColorStop(1, '#0a0a1a');
+            plinkoCtx.fillStyle = gradient;
+            plinkoCtx.fillRect(0, 0, width, height);
+            
+            // Draw slots
+            for (let i = 0; i < PLINKO_PRIZES.length; i++) {
+                plinkoCtx.fillStyle = PLINKO_SLOT_COLORS[i];
+                plinkoCtx.fillRect(i * slotWidth, boardBottom, slotWidth, 50);
+                
+                plinkoCtx.fillStyle = "#333";
+                plinkoCtx.font = "bold 14px Arial";
+                plinkoCtx.textAlign = "center";
+                plinkoCtx.fillText("$" + PLINKO_PRIZES[i].toLocaleString(), i * slotWidth + slotWidth / 2, boardBottom + 30);
+                
+                // Draw slot dividers
+                plinkoCtx.strokeStyle = '#333';
+                plinkoCtx.beginPath();
+                plinkoCtx.moveTo(i * slotWidth, boardBottom);
+                plinkoCtx.lineTo(i * slotWidth, height);
+                plinkoCtx.stroke();
+            }
+            
+            // Draw pegs
+            plinkoCtx.fillStyle = "#FFD700";
+            plinkoPegs.forEach(peg => {
+                plinkoCtx.beginPath();
+                plinkoCtx.arc(peg.x, peg.y, PLINKO_PEG_RADIUS, 0, Math.PI * 2);
+                plinkoCtx.fill();
+            });
+            
+            // Draw chip (or preview)
+            if (plinkoChip) {
+                drawPlinkoChipAt(plinkoChip.x, plinkoChip.y);
+            } else if (!plinkoDropping && !plinkoWon) {
+                drawPlinkoChipAt(plinkoMouseX, 30);
+            }
+        }
+        
+        function drawPlinkoChipAt(x, y) {
+            plinkoCtx.beginPath();
+            plinkoCtx.arc(x, y, PLINKO_CHIP_RADIUS, 0, Math.PI * 2);
+            plinkoCtx.fillStyle = "#FF4500";
+            plinkoCtx.fill();
+            plinkoCtx.strokeStyle = "#8B0000";
+            plinkoCtx.lineWidth = 2;
+            plinkoCtx.stroke();
+            
+            // Inner ring
+            plinkoCtx.beginPath();
+            plinkoCtx.arc(x, y, PLINKO_CHIP_RADIUS - 5, 0, Math.PI * 2);
+            plinkoCtx.strokeStyle = "rgba(255,255,255,0.3)";
+            plinkoCtx.stroke();
+            
+            // Dollar sign
+            plinkoCtx.fillStyle = "white";
+            plinkoCtx.font = "bold 12px Arial";
+            plinkoCtx.textAlign = "center";
+            plinkoCtx.textBaseline = "middle";
+            plinkoCtx.fillText("$", x, y);
+        }
+
+        function createConfetti() {
+            const colors = ['#FFD700','#FF6B35','#00E5FF','#FF1493','#00C853'];
+            for (let i = 0; i < 100; i++) {
+                const c = document.createElement('div');
+                c.className = 'confetti';
+                c.style.left = Math.random() * 100 + '%';
+                c.style.background = colors[Math.floor(Math.random() * colors.length)];
+                c.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                c.style.animationDelay = Math.random() * 0.5 + 's';
+                document.body.appendChild(c);
+                setTimeout(() => c.remove(), 4000);
+            }
+        }
+
+        function showEnding() {
+            stopTimer();
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('screen-ending').classList.add('active');
+            document.getElementById('statusDisplay').style.display = 'none';
+            createConfetti();
+            const t = (15 * 60) - timeRemaining;
+            document.getElementById('summaryStats').innerHTML = '<p style="text-align:center;color:#ccc;">⏱️ Time: ' + Math.floor(t/60) + 'm ' + (t%60) + 's<br>❤️ Lives Remaining: ' + lives + '/5<br>🎵 Musicians Found: ' + foundMusicians.length + '/10</p>';
+        }
+
+        function restartGame() {
+            document.querySelectorAll('.overlay').forEach(e => e.remove());
+            stopTimer();
+            lives = 5; timeRemaining = 15 * 60; currentGame = 0;
+            gameStats = { livesLost: 0 };
+            revealedLetters = new Set([' ']); selectedTiles = []; foundMusicians = []; currentJeopardyQ = 0; currentCardValue = 7;
+            wheelSolved = false;
+            plinkoWon = false;
+            plinkoDropping = false;
+            plinkoChip = null;
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('screen-intro').classList.add('active');
+            document.getElementById('timerDisplay').textContent = '15:00';
+            document.getElementById('timerDisplay').classList.remove('timer-warning');
+            document.querySelectorAll('.life').forEach(h => h.classList.remove('lost'));
+            document.querySelectorAll('[id$="Feedback"]').forEach(e => e.innerHTML = '');
+            document.querySelectorAll('[id$="Next"]').forEach(e => e.style.display = 'none');
+            document.querySelectorAll('.text-input').forEach(i => { i.value = ''; i.disabled = false; });
+            document.getElementById('letterInput').style.display = 'flex';
+            for (let i = 0; i < 10; i++) {
+                const box = document.getElementById('box' + i);
+                box.textContent = '';
+                box.className = 'musician-box';
+            }
+            document.getElementById('musicianProgress').textContent = '0 / 10 found';
+            document.getElementById('currentCard').textContent = '7♠';
+            document.getElementById('currentCard').className = 'playing-card';
+            document.getElementById('nextCard').className = 'playing-card hidden';
+            document.getElementById('nextCard').textContent = '';
+            document.getElementById('plinkoResult').innerHTML = '';
+        }
+    </script>
+</body>
+</html>
